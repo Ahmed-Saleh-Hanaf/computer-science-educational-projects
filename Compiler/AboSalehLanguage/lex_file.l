@@ -1,0 +1,84 @@
+%option noyywrap
+
+letter [a-zA-Z]
+digit [0-9]
+id [a-zA-Z_][a-zA-Z0-9_]*
+
+%{
+	#include<stdio.h>
+	#include<stdlib.h>
+	#include<string.h>
+	#include "y.tab.h"
+%}
+
+
+%%
+"#".*                           ;
+[ \t\r\n]+                      ;
+
+"class"                         {return CLASS;}
+"fun"                           {return FUN;}
+"return"                        {return RETURN;}
+"for"				{return FOR; }
+"while"                         {return WHILE;}
+"break"                         {return BREAK ;}
+"continue"                      {return CONTINUE;}
+"switch"                        {return SWITCH ;}
+"case"                          {return CASE;}
+"default"                       {return DEFAULT;}
+"if"                            {return IF ;}
+"elif"                          {return ELIF ;}
+"else"                          {return ELSE ;}
+
+"int"                           {return INT ;}
+"float"                         {return FLOAT;}
+"char"                          {return CHAR;}
+"string"                        {return STRING;}
+"bool"                          {return BOOL ;}
+"void"                          {return VOID;}
+
+"True"                          {return TRUE ;}
+"False"                         {return FALSE ;}
+
+"and"                           {return AND ;}
+"or"                            {return OR ;}
+"not"                           {return NOT ;}
+
+"=="                            {return EE;}
+"!="                            {return NE ;}
+">="                            {return GE ;}
+"<="                            {return LE ;}
+">"                             {return G ;}
+"<"                             {return L ;}
+
+"+="                            {return PA ;}
+"-="                            {return SA ;}
+"*="                            {return MA ;}
+"/="                            {return DA ;}
+"%="                            {return MODA ;}
+"="                             {return AO ;}
+
+"++"                            {return INCR ;}
+"--"                            {return DECR ;}
+
+"+"                             {return PLUS;}
+"-"                             {return MINES;}
+"**"                            {return POW;}
+"*"                             {return MULT;}
+"/"                             {return DIV ;}
+"%"                             {return MOD ;}
+
+";"                             {return ';';}
+","                             {return ',';}
+":"                             {return ':';}
+"("                             {return '(';}
+")"                             {return ')';}
+"{"                             {return '{';}
+"}"                             {return '}';}
+"["                             {return '[';}
+"]"                             {return ']';}
+
+({digit})*"."({digit})+         {yylval.float_val=atof(yytext); return NUM_FLOAT;}                       
+({digit})+			{yylval.int_val=atoi(yytext); return NUM_INT;}
+{id}                            {yylval.str_val=strdup(yytext); return ID;}
+%%
