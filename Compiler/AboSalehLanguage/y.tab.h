@@ -93,7 +93,9 @@ extern int yydebug;
      NUM_INT = 302,
      NUM_FLOAT = 303,
      ID = 304,
-     UMINUS = 305
+     STR = 305,
+     CH = 306,
+     UMINUS = 307
    };
 #endif
 /* Tokens.  */
@@ -144,7 +146,9 @@ extern int yydebug;
 #define NUM_INT 302
 #define NUM_FLOAT 303
 #define ID 304
-#define UMINUS 305
+#define STR 305
+#define CH 306
+#define UMINUS 307
 
 
 
@@ -152,7 +156,7 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 2058 of yacc.c  */
-#line 12 "yacc_file.y"
+#line 50 "yacc_file.y"
  
     int int_val;
     float float_val;
@@ -161,7 +165,7 @@ typedef union YYSTYPE
 
 
 /* Line 2058 of yacc.c  */
-#line 165 "y.tab.h"
+#line 169 "y.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

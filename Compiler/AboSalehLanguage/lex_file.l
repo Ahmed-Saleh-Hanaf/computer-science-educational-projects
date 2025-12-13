@@ -78,6 +78,11 @@ id [a-zA-Z_][a-zA-Z0-9_]*
 "["                             {return '[';}
 "]"                             {return ']';}
 
+\"([^"])*\"                          {yylval.str_val = strdup(yytext);
+				 return STR;}
+
+\'.\'                           {yylval.char_val=yytext[1]; return CH;}
+
 ({digit})*"."({digit})+         {yylval.float_val=atof(yytext); return NUM_FLOAT;}                       
 ({digit})+			{yylval.int_val=atoi(yytext); return NUM_INT;}
 {id}                            {yylval.str_val=strdup(yytext); return ID;}

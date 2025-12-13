@@ -69,12 +69,50 @@
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>
+#include<stdbool.h>
 
 int yylex();
 int yyerror(char* s);
 
+typedef struct 
+{
+    char name[32];
+    int type; // 0=int,1=float,2=char,3=bool,4=string 
+    union {
+            int int_val;
+	    float float_val;
+	    char char_val;
+	    char* str_val;
+    } value;
+}Variable;
+
+Variable symtable[100];
+int num_var = 0;
+
+int get_var_index(char *name) 
+{
+    for (int i = 0; i < num_var; i++)
+        if (strcmp(symtable[i].name, name) == 0) return i;
+    return -1;
+}
+
+bool is_full()
+{
+   return num_var >= 99;
+}
+
+int add_var(char *name, int type) 
+{
+    strcpy(symtable[num_var].name, name);
+    symtable[num_var].type = type;
+    //printf("%s\n",symtable[num_var].name);
+    num_var++;
+    return num_var-1;
+}
+
+
 /* Line 371 of yacc.c  */
-#line 78 "y.tab.c"
+#line 116 "y.tab.c"
 
 # ifndef YY_NULL
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -157,7 +195,9 @@ extern int yydebug;
      NUM_INT = 302,
      NUM_FLOAT = 303,
      ID = 304,
-     UMINUS = 305
+     STR = 305,
+     CH = 306,
+     UMINUS = 307
    };
 #endif
 /* Tokens.  */
@@ -208,7 +248,9 @@ extern int yydebug;
 #define NUM_INT 302
 #define NUM_FLOAT 303
 #define ID 304
-#define UMINUS 305
+#define STR 305
+#define CH 306
+#define UMINUS 307
 
 
 
@@ -216,7 +258,7 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 387 of yacc.c  */
-#line 12 "yacc_file.y"
+#line 50 "yacc_file.y"
  
     int int_val;
     float float_val;
@@ -225,7 +267,7 @@ typedef union YYSTYPE
 
 
 /* Line 387 of yacc.c  */
-#line 229 "y.tab.c"
+#line 271 "y.tab.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -253,7 +295,7 @@ int yyparse ();
 /* Copy the second part of user declarations.  */
 
 /* Line 390 of yacc.c  */
-#line 257 "y.tab.c"
+#line 299 "y.tab.c"
 
 #ifdef short
 # undef short
@@ -471,22 +513,22 @@ union yyalloc
 #endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  12
+#define YYFINAL  26
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   52
+#define YYLAST   98
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  54
+#define YYNTOKENS  58
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  6
+#define YYNNTS  13
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  16
+#define YYNRULES  40
 /* YYNRULES -- Number of states.  */
-#define YYNSTATES  28
+#define YYNSTATES  84
 
 /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   305
+#define YYMAXUTOK   307
 
 #define YYTRANSLATE(YYX)						\
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
@@ -498,8 +540,8 @@ static const yytype_uint8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-      52,    53,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,    51,
+      55,    56,     2,     2,    57,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,    54,    53,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -524,7 +566,7 @@ static const yytype_uint8 yytranslate[] =
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
       35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
-      45,    46,    47,    48,    49,    50
+      45,    46,    47,    48,    49,    50,    51,    52
 };
 
 #if YYDEBUG
@@ -532,25 +574,40 @@ static const yytype_uint8 yytranslate[] =
    YYRHS.  */
 static const yytype_uint8 yyprhs[] =
 {
-       0,     0,     3,     6,     8,    11,    15,    19,    21,    25,
-      29,    33,    35,    39,    41,    43,    46
+       0,     0,     3,     6,     8,    11,    14,    17,    19,    23,
+      27,    29,    33,    37,    41,    43,    47,    49,    51,    53,
+      56,    59,    62,    66,    71,    78,    81,    87,    90,    96,
+      99,   105,   112,   113,   118,   119,   125,   126,   132,   133,
+     139
 };
 
 /* YYRHS -- A `-1'-separated list of the rules' RHS.  */
 static const yytype_int8 yyrhs[] =
 {
-      55,     0,    -1,    55,    56,    -1,    56,    -1,    57,    51,
-      -1,    57,    42,    58,    -1,    57,    43,    58,    -1,    58,
-      -1,    58,    44,    59,    -1,    58,    45,    59,    -1,    58,
-      46,    59,    -1,    59,    -1,    52,    57,    53,    -1,    47,
-      -1,    48,    -1,    43,    59,    -1,    59,    41,    59,    -1
+      59,     0,    -1,    59,    60,    -1,    60,    -1,    62,    53,
+      -1,    65,    53,    -1,    61,    54,    -1,    49,    -1,    62,
+      42,    63,    -1,    62,    43,    63,    -1,    63,    -1,    63,
+      44,    64,    -1,    63,    45,    64,    -1,    63,    46,    64,
+      -1,    64,    -1,    55,    62,    56,    -1,    47,    -1,    48,
+      -1,    49,    -1,    49,    39,    -1,    49,    40,    -1,    43,
+      64,    -1,    64,    41,    64,    -1,    16,    49,    66,    67,
+      -1,    16,    49,    38,    62,    66,    67,    -1,    17,    49,
+      -1,    17,    49,    38,    62,    68,    -1,    18,    49,    -1,
+      18,    49,    38,    51,    69,    -1,    19,    49,    -1,    19,
+      49,    38,    50,    70,    -1,    57,    49,    38,    62,    66,
+      67,    -1,    -1,    57,    49,    66,    67,    -1,    -1,    57,
+      49,    38,    62,    68,    -1,    -1,    57,    49,    38,    51,
+      69,    -1,    -1,    57,    49,    38,    50,    70,    -1,    -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_uint16 yyrline[] =
 {
-       0,    47,    47,    48,    51,    54,    55,    56,    59,    60,
-      61,    62,    65,    66,    67,    68,    69
+       0,    87,    87,    88,    91,    92,    93,    96,   128,   129,
+     130,   133,   134,   135,   136,   139,   140,   141,   142,   152,
+     161,   171,   172,   175,   183,   191,   199,   207,   215,   223,
+     231,   240,   248,   250,   258,   260,   268,   270,   278,   280,
+     288
 };
 #endif
 
@@ -564,8 +621,10 @@ static const char *const yytname[] =
   "INT", "FLOAT", "CHAR", "STRING", "BOOL", "VOID", "TRUE", "FALSE", "AND",
   "OR", "NOT", "EE", "NE", "GE", "LE", "G", "L", "PA", "SA", "MA", "DA",
   "MODA", "AO", "INCR", "DECR", "POW", "PLUS", "MINES", "MULT", "DIV",
-  "MOD", "NUM_INT", "NUM_FLOAT", "ID", "UMINUS", "';'", "'('", "')'",
-  "$accept", "code", "stmt", "exp", "term", "fact", YY_NULL
+  "MOD", "NUM_INT", "NUM_FLOAT", "ID", "STR", "CH", "UMINUS", "';'", "':'",
+  "'('", "')'", "','", "$accept", "code", "stmt", "var", "exp", "term",
+  "fact", "decler", "decler_int", "decler_int2", "decler_float",
+  "decler_char", "decler_str", YY_NULL
 };
 #endif
 
@@ -579,22 +638,28 @@ static const yytype_uint16 yytoknum[] =
      275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
      285,   286,   287,   288,   289,   290,   291,   292,   293,   294,
      295,   296,   297,   298,   299,   300,   301,   302,   303,   304,
-     305,    59,    40,    41
+     305,   306,   307,    59,    58,    40,    41,    44
 };
 # endif
 
 /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_uint8 yyr1[] =
 {
-       0,    54,    55,    55,    56,    57,    57,    57,    58,    58,
-      58,    58,    59,    59,    59,    59,    59
+       0,    58,    59,    59,    60,    60,    60,    61,    62,    62,
+      62,    63,    63,    63,    63,    64,    64,    64,    64,    64,
+      64,    64,    64,    65,    65,    65,    65,    65,    65,    65,
+      65,    66,    66,    67,    67,    68,    68,    69,    69,    70,
+      70
 };
 
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
 static const yytype_uint8 yyr2[] =
 {
-       0,     2,     2,     1,     2,     3,     3,     1,     3,     3,
-       3,     1,     3,     1,     1,     2,     3
+       0,     2,     2,     1,     2,     2,     2,     1,     3,     3,
+       1,     3,     3,     3,     1,     3,     1,     1,     1,     2,
+       2,     2,     3,     4,     6,     2,     5,     2,     5,     2,
+       5,     6,     0,     4,     0,     5,     0,     5,     0,     5,
+       0
 };
 
 /* YYDEFACT[STATE-NAME] -- Default reduction number in state STATE-NUM.
@@ -602,70 +667,98 @@ static const yytype_uint8 yyr2[] =
    means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
-       0,     0,    13,    14,     0,     0,     3,     0,     7,    11,
-      15,     0,     1,     2,     0,     0,     4,     0,     0,     0,
-       0,    12,     5,     6,     8,     9,    10,    16
+       0,     0,     0,     0,     0,     0,    16,    17,    18,     0,
+       0,     3,     0,     0,    10,    14,     0,    32,    25,    27,
+      29,    18,    21,    19,    20,     0,     1,     2,     6,     0,
+       0,     4,     0,     0,     0,     0,     5,     0,     0,    34,
+       0,     0,     0,    15,     8,     9,    11,    12,    13,    22,
+      32,     0,     0,    23,    36,    38,    40,    34,     0,    32,
+       0,    26,     0,    28,     0,    30,    24,    32,    34,     0,
+       0,     0,    34,    33,     0,     0,     0,    31,    36,    38,
+      40,    35,    37,    39
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,     5,     6,     7,     8,     9
+      -1,    10,    11,    12,    13,    14,    15,    16,    39,    53,
+      61,    63,    65
 };
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
-#define YYPACT_NINF -43
+#define YYPACT_NINF -56
 static const yytype_int8 yypact[] =
 {
-     -42,   -42,   -43,   -43,   -42,     0,   -43,   -35,   -33,   -32,
-     -43,   -39,   -43,   -43,   -42,   -42,   -43,   -42,   -42,   -42,
-     -42,   -43,   -33,   -33,   -32,   -32,   -32,   -32
+     -11,   -40,   -38,   -33,   -19,    23,   -56,   -56,   -25,    23,
+       3,   -56,     9,   -18,    15,     2,    -8,   -34,    19,    26,
+      29,   -13,   -56,   -56,   -56,    13,   -56,   -56,   -56,    23,
+      23,   -56,    23,    23,    23,    23,   -56,    23,    24,    17,
+      23,    25,    27,   -56,    15,    15,     2,     2,     2,     2,
+       5,    37,    30,   -56,    11,    28,    31,    17,    23,    32,
+      33,   -56,    34,   -56,    35,   -56,   -56,     5,    17,    42,
+      43,    48,    17,   -56,    23,    36,    40,   -56,    11,    28,
+      31,   -56,   -56,   -56
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -43,   -43,    10,    13,     8,     1
+     -56,   -56,    81,   -56,    -9,     4,     7,   -56,   -49,   -55,
+      14,    16,    18
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
    positive, shift that token.  If negative, reduce the rule which
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
-#define YYTABLE_NINF -1
-static const yytype_uint8 yytable[] =
+#define YYTABLE_NINF -8
+static const yytype_int8 yytable[] =
 {
-      12,     1,    10,    14,    15,     2,     3,    14,    15,    20,
-       4,    17,    18,    19,    21,    13,    16,    11,    24,    25,
-      26,    27,    22,    23,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     1,     0,     0,     0,     2,     3,     0,
-       0,     0,     4
+      25,    57,    66,    26,    37,     1,     2,     3,     4,    17,
+      68,    18,    22,    73,    23,    24,    19,    77,    72,     1,
+       2,     3,     4,    38,    29,    30,    23,    24,    50,    -7,
+      20,    54,     5,    44,    45,    31,     6,     7,     8,    46,
+      47,    48,    49,    35,     9,    36,     5,    29,    30,    67,
+       6,     7,     8,    29,    30,    29,    30,    40,     9,    32,
+      33,    34,    38,    28,    41,    78,     5,    42,    60,    43,
+       6,     7,    21,    51,    52,    58,    55,    56,     9,    59,
+      74,    75,    69,    70,    71,    62,    76,    79,    64,    38,
+      80,    27,    81,     0,     0,    82,     0,     0,    83
 };
 
 #define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-43)))
+  (!!((Yystate) == (-56)))
 
 #define yytable_value_is_error(Yytable_value) \
   YYID (0)
 
 static const yytype_int8 yycheck[] =
 {
-       0,    43,     1,    42,    43,    47,    48,    42,    43,    41,
-      52,    44,    45,    46,    53,     5,    51,     4,    17,    18,
-      19,    20,    14,    15,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    43,    -1,    -1,    -1,    47,    48,    -1,
-      -1,    -1,    52
+       9,    50,    57,     0,    38,    16,    17,    18,    19,    49,
+      59,    49,     5,    68,    39,    40,    49,    72,    67,    16,
+      17,    18,    19,    57,    42,    43,    39,    40,    37,    54,
+      49,    40,    43,    29,    30,    53,    47,    48,    49,    32,
+      33,    34,    35,    41,    55,    53,    43,    42,    43,    58,
+      47,    48,    49,    42,    43,    42,    43,    38,    55,    44,
+      45,    46,    57,    54,    38,    74,    43,    38,    57,    56,
+      47,    48,    49,    49,    57,    38,    51,    50,    55,    49,
+      38,    38,    49,    49,    49,    57,    38,    51,    57,    57,
+      50,    10,    78,    -1,    -1,    79,    -1,    -1,    80
 };
 
 /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
    symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,    43,    47,    48,    52,    55,    56,    57,    58,    59,
-      59,    57,     0,    56,    42,    43,    51,    44,    45,    46,
-      41,    53,    58,    58,    59,    59,    59,    59
+       0,    16,    17,    18,    19,    43,    47,    48,    49,    55,
+      59,    60,    61,    62,    63,    64,    65,    49,    49,    49,
+      49,    49,    64,    39,    40,    62,     0,    60,    54,    42,
+      43,    53,    44,    45,    46,    41,    53,    38,    57,    66,
+      38,    38,    38,    56,    63,    63,    64,    64,    64,    64,
+      62,    49,    57,    67,    62,    51,    50,    66,    38,    49,
+      57,    68,    57,    69,    57,    70,    67,    62,    66,    49,
+      49,    49,    66,    67,    38,    38,    38,    67,    62,    51,
+      50,    68,    69,    70
 };
 
 #define yyerrok		(yyerrstatus = 0)
@@ -1467,85 +1560,332 @@ yyreduce:
     {
         case 4:
 /* Line 1792 of yacc.c  */
-#line 51 "yacc_file.y"
+#line 91 "yacc_file.y"
     { printf("Result: %f\n", (yyvsp[(1) - (2)].float_val)); }
-    break;
-
-  case 5:
-/* Line 1792 of yacc.c  */
-#line 54 "yacc_file.y"
-    { (yyval.float_val) = (yyvsp[(1) - (3)].float_val) + (yyvsp[(3) - (3)].float_val); }
-    break;
-
-  case 6:
-/* Line 1792 of yacc.c  */
-#line 55 "yacc_file.y"
-    { (yyval.float_val) = (yyvsp[(1) - (3)].float_val) - (yyvsp[(3) - (3)].float_val); }
     break;
 
   case 7:
 /* Line 1792 of yacc.c  */
-#line 56 "yacc_file.y"
-    { (yyval.float_val) = (yyvsp[(1) - (1)].float_val); }
+#line 96 "yacc_file.y"
+    {
+         int idx = get_var_index((yyvsp[(1) - (1)].str_val));
+                               if (idx == -1) yyerror("this var is not declered\n") ;
+			       else 
+			       {
+			         printf("name var: %s\n", symtable[idx].name);
+				 if (symtable[idx].type == 0)
+				 {
+				   printf("type var: int\n");
+				   printf("value var: %d\n", symtable[idx].value.int_val);
+				 }
+				 else if (symtable[idx].type == 1)
+				 {
+				   printf("type var: float\n");
+				   printf("value var: %f\n", symtable[idx].value.float_val);
+				 }
+				 else if (symtable[idx].type == 2)
+				 {
+				   printf("type var: char\n");
+				   printf("value var: %c\n", symtable[idx].value.char_val);
+				 }
+				 else if (symtable[idx].type == 4)
+				 {
+				   printf("type var: string\n");
+				   printf("value var: %s\n", symtable[idx].value.str_val);
+				 }
+
+	
+			      }
+         }
     break;
 
   case 8:
 /* Line 1792 of yacc.c  */
-#line 59 "yacc_file.y"
-    { (yyval.float_val) = (yyvsp[(1) - (3)].float_val) * (yyvsp[(3) - (3)].float_val); }
+#line 128 "yacc_file.y"
+    { (yyval.float_val) = (yyvsp[(1) - (3)].float_val) + (yyvsp[(3) - (3)].float_val); }
     break;
 
   case 9:
 /* Line 1792 of yacc.c  */
-#line 60 "yacc_file.y"
-    { if((yyvsp[(3) - (3)].float_val)==0) { printf("Error: divide by zero\n"); (yyval.float_val)=0; } else (yyval.float_val)=(yyvsp[(1) - (3)].float_val)/(yyvsp[(3) - (3)].float_val); }
+#line 129 "yacc_file.y"
+    { (yyval.float_val) = (yyvsp[(1) - (3)].float_val) - (yyvsp[(3) - (3)].float_val); }
     break;
 
   case 10:
 /* Line 1792 of yacc.c  */
-#line 61 "yacc_file.y"
-    { if((yyvsp[(3) - (3)].float_val)==0) { printf("Error: modulo by zero\n"); (yyval.float_val)=0; } else (yyval.float_val)=fmod((yyvsp[(1) - (3)].float_val),(yyvsp[(3) - (3)].float_val)); }
+#line 130 "yacc_file.y"
+    { (yyval.float_val) = (yyvsp[(1) - (1)].float_val); }
     break;
 
   case 11:
 /* Line 1792 of yacc.c  */
-#line 62 "yacc_file.y"
-    { (yyval.float_val) = (yyvsp[(1) - (1)].float_val); }
+#line 133 "yacc_file.y"
+    { (yyval.float_val) = (yyvsp[(1) - (3)].float_val) * (yyvsp[(3) - (3)].float_val); }
     break;
 
   case 12:
 /* Line 1792 of yacc.c  */
-#line 65 "yacc_file.y"
-    { (yyval.float_val) = (yyvsp[(2) - (3)].float_val); }
+#line 134 "yacc_file.y"
+    { if((yyvsp[(3) - (3)].float_val)==0) { printf("Error: divide by zero\n"); (yyval.float_val)=0; } else (yyval.float_val)=(yyvsp[(1) - (3)].float_val)/(yyvsp[(3) - (3)].float_val); }
     break;
 
   case 13:
 /* Line 1792 of yacc.c  */
-#line 66 "yacc_file.y"
-    { (yyval.float_val) = (float)(yyvsp[(1) - (1)].int_val); }
+#line 135 "yacc_file.y"
+    { if((yyvsp[(3) - (3)].float_val)==0) { printf("Error: modulo by zero\n"); (yyval.float_val)=0; } else (yyval.float_val)=fmod((yyvsp[(1) - (3)].float_val),(yyvsp[(3) - (3)].float_val)); }
     break;
 
   case 14:
 /* Line 1792 of yacc.c  */
-#line 67 "yacc_file.y"
+#line 136 "yacc_file.y"
     { (yyval.float_val) = (yyvsp[(1) - (1)].float_val); }
     break;
 
   case 15:
 /* Line 1792 of yacc.c  */
-#line 68 "yacc_file.y"
-    { (yyval.float_val) = -(yyvsp[(2) - (2)].float_val); }
+#line 139 "yacc_file.y"
+    { (yyval.float_val) = (yyvsp[(2) - (3)].float_val); }
     break;
 
   case 16:
 /* Line 1792 of yacc.c  */
-#line 69 "yacc_file.y"
+#line 140 "yacc_file.y"
+    { (yyval.float_val) = (float)(yyvsp[(1) - (1)].int_val); }
+    break;
+
+  case 17:
+/* Line 1792 of yacc.c  */
+#line 141 "yacc_file.y"
+    { (yyval.float_val) = (yyvsp[(1) - (1)].float_val); }
+    break;
+
+  case 18:
+/* Line 1792 of yacc.c  */
+#line 142 "yacc_file.y"
+    {  
+                               int idx = get_var_index((yyvsp[(1) - (1)].str_val));
+                               if (idx == -1) yyerror("this var is not declered\n") ;
+			       else 
+			       {
+			         if(symtable[idx].type == 0)(yyval.float_val)=symtable[idx].value.int_val;
+				 else if (symtable[idx].type == 1) (yyval.float_val)=symtable[idx].value.float_val;
+				 else yyerror("you can not use this var in expression\n") ;
+			       }
+                            }
+    break;
+
+  case 19:
+/* Line 1792 of yacc.c  */
+#line 152 "yacc_file.y"
+    {int idx = get_var_index((yyvsp[(1) - (2)].str_val));
+		             if (idx == -1)yyerror("variable not declered\n");
+			     else 
+				 {  
+					 if(symtable[idx].type==0) {symtable[idx].value.int_val+=1;(yyval.float_val)=symtable[idx].value.int_val; }
+					 else if (symtable[idx].type==1) (yyval.float_val)=++symtable[idx].value.float_val;
+					 else yyerror("you can not increament this var\n");  
+				  }
+			    }
+    break;
+
+  case 20:
+/* Line 1792 of yacc.c  */
+#line 161 "yacc_file.y"
+    {int idx = get_var_index((yyvsp[(1) - (2)].str_val));
+		             if (idx == -1)yyerror("variable not declered\n");
+			     else 
+				 {  
+					 if(symtable[idx].type==0) {symtable[idx].value.int_val-=1;(yyval.float_val)=symtable[idx].value.int_val; }
+					 else if (symtable[idx].type==1) (yyval.float_val)=--symtable[idx].value.float_val;
+					 else yyerror("you can not increament this var\n");  
+				  }
+			    }
+    break;
+
+  case 21:
+/* Line 1792 of yacc.c  */
+#line 171 "yacc_file.y"
+    { (yyval.float_val) = -(yyvsp[(2) - (2)].float_val); }
+    break;
+
+  case 22:
+/* Line 1792 of yacc.c  */
+#line 172 "yacc_file.y"
     { (yyval.float_val) = pow((yyvsp[(1) - (3)].float_val),(yyvsp[(3) - (3)].float_val)); }
+    break;
+
+  case 23:
+/* Line 1792 of yacc.c  */
+#line 175 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (4)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (4)].str_val), 0);symtable[idx].value.int_val=0; }
+				  }
+			       else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 24:
+/* Line 1792 of yacc.c  */
+#line 183 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (6)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (6)].str_val), 0);symtable[idx].value.int_val=(yyvsp[(4) - (6)].float_val); }
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 25:
+/* Line 1792 of yacc.c  */
+#line 191 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (2)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (2)].str_val), 1);symtable[idx].value.float_val=0; }
+				  }
+			       else yyerror("variable already devlared before") ;
+			       }
+    break;
+
+  case 26:
+/* Line 1792 of yacc.c  */
+#line 199 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (5)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (5)].str_val), 1);symtable[idx].value.float_val=(yyvsp[(4) - (5)].float_val); }
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 27:
+/* Line 1792 of yacc.c  */
+#line 207 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (2)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (2)].str_val), 2);symtable[idx].value.char_val='0'; }
+				  }
+			       else yyerror("variable already devlared before") ;
+			       }
+    break;
+
+  case 28:
+/* Line 1792 of yacc.c  */
+#line 215 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (5)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (5)].str_val), 2);symtable[idx].value.char_val=(yyvsp[(4) - (5)].char_val); }
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 29:
+/* Line 1792 of yacc.c  */
+#line 223 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (2)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (2)].str_val), 4);symtable[idx].value.str_val=strdup(""); }
+				  }
+			       else yyerror("variable already devlared before") ;
+			       }
+    break;
+
+  case 30:
+/* Line 1792 of yacc.c  */
+#line 231 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (5)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (5)].str_val), 4);symtable[idx].value.str_val=strdup((yyvsp[(4) - (5)].str_val)); }
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 31:
+/* Line 1792 of yacc.c  */
+#line 240 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (6)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (6)].str_val), 0);symtable[idx].value.int_val=(yyvsp[(4) - (6)].float_val); }
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 33:
+/* Line 1792 of yacc.c  */
+#line 250 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (4)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (4)].str_val), 0);symtable[idx].value.int_val=0; }
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 35:
+/* Line 1792 of yacc.c  */
+#line 260 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (5)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (5)].str_val), 1);symtable[idx].value.float_val=(yyvsp[(4) - (5)].float_val);}
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 37:
+/* Line 1792 of yacc.c  */
+#line 270 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (5)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (5)].str_val), 2);symtable[idx].value.char_val=(yyvsp[(4) - (5)].char_val);}
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
+    break;
+
+  case 39:
+/* Line 1792 of yacc.c  */
+#line 280 "yacc_file.y"
+    { if (get_var_index((yyvsp[(2) - (5)].str_val))==-1) 
+                                  {
+				     if (is_full())  yyerror("symbol table is full") ;
+				     else 
+				     {int idx = add_var((yyvsp[(2) - (5)].str_val), 4);symtable[idx].value.str_val=strdup((yyvsp[(4) - (5)].str_val));}
+				  }
+			        else yyerror("variable already devlared before") ;
+			      }
     break;
 
 
 /* Line 1792 of yacc.c  */
-#line 1549 "y.tab.c"
+#line 1889 "y.tab.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1777,7 +2117,7 @@ yyreturn:
 
 
 /* Line 2055 of yacc.c  */
-#line 72 "yacc_file.y"
+#line 290 "yacc_file.y"
 
 
 int yyerror(char* s)
@@ -1789,9 +2129,8 @@ int yyerror(char* s)
 int main()
 {
     printf("Enter your code:\n");
-    while(!feof(stdin))
-    {
-        yyparse();
+    while(yyparse()==0){
+
     }
     return 0;
 }
