@@ -154,7 +154,7 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 2058 of yacc.c  */
-#line 51 "yacc_file.y"
+#line 75 "yacc_file.y"
  
     int int_val;
     float float_val;

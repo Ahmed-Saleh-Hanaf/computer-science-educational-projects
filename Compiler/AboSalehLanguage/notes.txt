@@ -1,7 +1,0 @@
-int main()
-{
-       while(!feof(stdin)) yylex();
-	return 0;
-}
-
-{return *yytext;}

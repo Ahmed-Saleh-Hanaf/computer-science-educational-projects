@@ -45,6 +45,30 @@ int add_var(char *name, int type)
     return num_var-1;
 }
 
+// ID List
+typedef struct { char name[32]; } IDLIST;
+IDLIST idlist[10];
+int num_id = 0;
+
+void add_to_id_list(char *name) {
+    strcpy(idlist[num_id].name, name);
+    num_id++;
+}
+
+// Value List
+typedef struct {
+    int type; // 0=int,1=float,2=char,3=bool,4=string 
+    union {
+        int int_val;
+        float float_val;
+        char char_val;
+        bool bool_val;
+        char* str_val;
+    } value;
+} Value;
+
+Value vallist[10];
+int num_val = 0;
 %}
 
 %union
@@ -92,6 +116,7 @@ code: code stmt
 
 stmt: exp ';'               { printf("Result: %f\n", $1); }
     | decler ';'
+    | assign ';'
     | var ':'
     ;
 ////////////////////////////////////////
@@ -383,7 +408,112 @@ decler_bool_list: ',' ID  decler_bool_list{ if (get_var_index($2)==-1)
 			                }
           | /*ep*/
 	  ; 
+///////////////////////////assignment/////////////////
+assign: id_list AO val_list            {
+                                            if (num_id != num_val)  yyerror("Number of variables and values do not match");
+                                            else 
+					    {
+                                                for (int i=0, j=num_id-1; i<num_id; i++, j--) 
+						{
+                                                   int idx = get_var_index(idlist[i].name);
+                                                   if (idx == -1) {yyerror("Variable not declared"); continue; }
+                                                   if (symtable[idx].type != vallist[j].type) { yyerror("Type mismatch"); continue;}
+						
+                                                   switch(symtable[idx].type) 
+						   {
+                                                      case 0: symtable[idx].value.int_val = vallist[j].value.int_val; break;
+                                                      case 1: symtable[idx].value.float_val = vallist[j].value.float_val; break;
+                                                      case 2: symtable[idx].value.char_val = vallist[j].value.char_val; break;
+                                                      case 3: symtable[idx].value.bool_val = vallist[j].value.bool_val; break;
+                                                      case 4: free(symtable[idx].value.str_val);
+                                                      symtable[idx].value.str_val = strdup(vallist[i].value.str_val); break;
+                                                   }
+                                                    printf("%s assigned successfully.\n", idlist[i].name);
+                                                }
+                                             }
+                                             num_id = 0;
+                                             num_val = 0;
+                                       }
+	 | ID PA exp                   {  
+                                          int idx = get_var_index($1);
+                                          if (idx == -1) yyerror("this var is not declered\n") ;
+			                  else 
+			                  {
+			                      if(symtable[idx].type == 0)symtable[idx].value.int_val += (int)$3;
+				              else if (symtable[idx].type == 1) symtable[idx].value.float_val+= $3;
+				              else yyerror("you can not use this var in expression\n") ;
+			                  }
+                                        }
+	 | ID SA exp                   {  
+                                          int idx = get_var_index($1);
+                                          if (idx == -1) yyerror("this var is not declered\n") ;
+			                  else 
+			                  {
+			                      if(symtable[idx].type == 0)symtable[idx].value.int_val -= (int)$3;
+				              else if (symtable[idx].type == 1) symtable[idx].value.float_val-= $3;
+				              else yyerror("you can not use this var in expression\n") ;
+			                  }
+                                        }
+	 | ID MA exp                   {  
+                                          int idx = get_var_index($1);
+                                          if (idx == -1) yyerror("this var is not declered\n") ;
+			                  else 
+			                  {
+			                      if(symtable[idx].type == 0)symtable[idx].value.int_val *= (int)$3;
+				              else if (symtable[idx].type == 1) symtable[idx].value.float_val-= $3;
+				              else yyerror("you can not use this var in expression\n") ;
+			                  }
+                                        }
+	 | ID DA exp                   {  
+                                          int idx = get_var_index($1);
+                                          if (idx == -1) yyerror("this var is not declered\n") ;
+			                  else 
+			                  {
+			                      if(symtable[idx].type == 0)symtable[idx].value.int_val /= (int)$3;
+				              else if (symtable[idx].type == 1) symtable[idx].value.float_val/= $3;
+				              else yyerror("you can not use this var in expression\n") ;
+			                  }
+                                        }
+	| ID MODA exp                   {  
+                                          int idx = get_var_index($1);
+                                          if (idx == -1) yyerror("this var is not declered\n") ;
+			                  else 
+			                  {
+			                      if(symtable[idx].type == 0)symtable[idx].value.int_val %= (int)$3;
+				              else yyerror("you can not use this var in expression\n") ;
+			                  }
+                                        }
+         ;
 
+id_list: ID                            { add_to_id_list($1); }
+       | ID ',' id_list                { add_to_id_list($1); }
+       ;
+
+val_list: val_item
+        | val_item ',' val_list 
+        ;
+
+val_item: NUM_FLOAT                    { vallist[num_val].type=1; vallist[num_val].value.float_val=$1; num_val++; }
+        | NUM_INT                      { vallist[num_val].type=0; vallist[num_val].value.int_val=$1; num_val++; }
+        | CH                           { vallist[num_val].type=2; vallist[num_val].value.char_val=$1; num_val++; }
+        | BOOLVAL                      { vallist[num_val].type=3; vallist[num_val].value.bool_val=$1; num_val++; }
+        | STR                          { vallist[num_val].type=4; vallist[num_val].value.str_val=strdup($1); num_val++; }
+	| ID                           {  
+                                          int idx = get_var_index($1);
+	                                  if (idx == -1) yyerror("this var is not declered\n") ;
+					  else 
+					  {
+						 switch(symtable[idx].type) 
+						   {
+                                                      case 0: vallist[num_val].type=0; vallist[num_val].value.int_val=symtable[idx].value.int_val; num_val++; break;
+                                                      case 1: vallist[num_val].type=1; vallist[num_val].value.float_val=symtable[idx].value.float_val; num_val++; break;
+                                                      case 2: vallist[num_val].type=2; vallist[num_val].value.char_val=symtable[idx].value.char_val; num_val++; break;
+                                                      case 3: vallist[num_val].type=3; vallist[num_val].value.bool_val=symtable[idx].value.bool_val; num_val++; break;
+                                                      case 4: vallist[num_val].type=4; vallist[num_val].value.str_val=symtable[idx].value.str_val; num_val++; break;
+                                                   }
+					   }
+                                       }                         
+        ;
 %%
 
 int yyerror(char* s)
@@ -395,7 +525,8 @@ int yyerror(char* s)
 int main()
 {
     printf("Enter your code:\n");
-    while(yyparse()==0){
+    while(yyparse()==0)
+    {
 
     }
     return 0;
