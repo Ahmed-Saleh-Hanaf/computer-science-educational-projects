@@ -65,37 +65,36 @@ extern int yydebug;
      STRING = 274,
      BOOL = 275,
      VOID = 276,
-     TRUE = 277,
-     FALSE = 278,
-     AND = 279,
-     OR = 280,
-     NOT = 281,
-     EE = 282,
-     NE = 283,
-     GE = 284,
-     LE = 285,
-     G = 286,
-     L = 287,
-     PA = 288,
-     SA = 289,
-     MA = 290,
-     DA = 291,
-     MODA = 292,
-     AO = 293,
-     INCR = 294,
-     DECR = 295,
-     POW = 296,
-     PLUS = 297,
-     MINES = 298,
-     MULT = 299,
-     DIV = 300,
-     MOD = 301,
-     NUM_INT = 302,
-     NUM_FLOAT = 303,
-     ID = 304,
-     STR = 305,
-     CH = 306,
-     UMINUS = 307
+     AND = 277,
+     OR = 278,
+     NOT = 279,
+     EE = 280,
+     NE = 281,
+     GE = 282,
+     LE = 283,
+     G = 284,
+     L = 285,
+     PA = 286,
+     SA = 287,
+     MA = 288,
+     DA = 289,
+     MODA = 290,
+     AO = 291,
+     INCR = 292,
+     DECR = 293,
+     POW = 294,
+     PLUS = 295,
+     MINES = 296,
+     MULT = 297,
+     DIV = 298,
+     MOD = 299,
+     NUM_INT = 300,
+     NUM_FLOAT = 301,
+     ID = 302,
+     STR = 303,
+     CH = 304,
+     BOOLVAL = 305,
+     UMINUS = 306
    };
 #endif
 /* Tokens.  */
@@ -118,37 +117,36 @@ extern int yydebug;
 #define STRING 274
 #define BOOL 275
 #define VOID 276
-#define TRUE 277
-#define FALSE 278
-#define AND 279
-#define OR 280
-#define NOT 281
-#define EE 282
-#define NE 283
-#define GE 284
-#define LE 285
-#define G 286
-#define L 287
-#define PA 288
-#define SA 289
-#define MA 290
-#define DA 291
-#define MODA 292
-#define AO 293
-#define INCR 294
-#define DECR 295
-#define POW 296
-#define PLUS 297
-#define MINES 298
-#define MULT 299
-#define DIV 300
-#define MOD 301
-#define NUM_INT 302
-#define NUM_FLOAT 303
-#define ID 304
-#define STR 305
-#define CH 306
-#define UMINUS 307
+#define AND 277
+#define OR 278
+#define NOT 279
+#define EE 280
+#define NE 281
+#define GE 282
+#define LE 283
+#define G 284
+#define L 285
+#define PA 286
+#define SA 287
+#define MA 288
+#define DA 289
+#define MODA 290
+#define AO 291
+#define INCR 292
+#define DECR 293
+#define POW 294
+#define PLUS 295
+#define MINES 296
+#define MULT 297
+#define DIV 298
+#define MOD 299
+#define NUM_INT 300
+#define NUM_FLOAT 301
+#define ID 302
+#define STR 303
+#define CH 304
+#define BOOLVAL 305
+#define UMINUS 306
 
 
 
@@ -156,16 +154,17 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 2058 of yacc.c  */
-#line 50 "yacc_file.y"
+#line 51 "yacc_file.y"
  
     int int_val;
     float float_val;
     char char_val;
+    bool bool_val;
     char* str_val;
 
 
 /* Line 2058 of yacc.c  */
-#line 169 "y.tab.h"
+#line 168 "y.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

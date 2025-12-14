@@ -8,6 +8,7 @@ id [a-zA-Z_][a-zA-Z0-9_]*
 	#include<stdio.h>
 	#include<stdlib.h>
 	#include<string.h>
+	#include<stdbool.h>
 	#include "y.tab.h"
 %}
 
@@ -37,8 +38,8 @@ id [a-zA-Z_][a-zA-Z0-9_]*
 "bool"                          {return BOOL ;}
 "void"                          {return VOID;}
 
-"True"                          {return TRUE ;}
-"False"                         {return FALSE ;}
+"True"                          { yylval.bool_val= true; return BOOLVAL ;}
+"False"                         { yylval.bool_val= false; return BOOLVAL ;}
 
 "and"                           {return AND ;}
 "or"                            {return OR ;}

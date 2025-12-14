@@ -16,6 +16,7 @@ typedef struct
             int int_val;
 	    float float_val;
 	    char char_val;
+	    bool bool_val;
 	    char* str_val;
     } value;
 }Variable;
@@ -51,12 +52,12 @@ int add_var(char *name, int type)
     int int_val;
     float float_val;
     char char_val;
+    bool bool_val;
     char* str_val;
 }
 
 %token CLASS FUN RETURN FOR WHILE BREAK CONTINUE SWITCH CASE DEFAULT IF ELIF ELSE
 %token INT FLOAT CHAR STRING BOOL VOID
-%token TRUE FALSE
 %token AND OR NOT
 %token EE NE GE LE G L
 %token PA SA MA DA MODA AO
@@ -68,6 +69,7 @@ int add_var(char *name, int type)
 %token <str_val> ID
 %token <str_val> STR
 %token <char_val> CH
+%token <bool_val> BOOLVAL
 
 %type <float_val> exp term fact
 
@@ -119,6 +121,12 @@ var: ID {
 				   printf("type var: string\n");
 				   printf("value var: %s\n", symtable[idx].value.str_val);
 				 }
+				  else if (symtable[idx].type == 3)
+				 {
+				   printf("type var: bool\n");
+				   printf("value var: %s\n", symtable[idx].value.bool_val?"True":"False");
+				 }
+
 
 	
 			      }
@@ -171,122 +179,211 @@ fact: '(' exp ')'           { $$ = $2; }
     | MINES fact %prec UMINUS { $$ = -$2; }
     | fact POW fact         { $$ = pow($1,$3); } 
     ;
+
 /////////////////////////////Decleration///////////////////////////////////////////////
-decler: INT ID decler_int decler_int2  { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 0);symtable[idx].value.int_val=0; }
-				  }
-			       else yyerror("variable already devlared before") ;
-			      }
-      | INT ID AO exp decler_int decler_int2 { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 0);symtable[idx].value.int_val=$4; }
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
-      |FLOAT ID               { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 1);symtable[idx].value.float_val=0; }
-				  }
-			       else yyerror("variable already devlared before") ;
-			       }
-      | FLOAT ID AO exp decler_float  { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 1);symtable[idx].value.float_val=$4; }
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
-      |CHAR ID               { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 2);symtable[idx].value.char_val='0'; }
-				  }
-			       else yyerror("variable already devlared before") ;
-			       }
-      | CHAR ID AO CH decler_char  { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 2);symtable[idx].value.char_val=$4; }
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
-      |STRING ID               { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 4);symtable[idx].value.str_val=strdup(""); }
-				  }
-			       else yyerror("variable already devlared before") ;
-			       }
-       | STRING ID AO STR decler_str  { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 4);symtable[idx].value.str_val=strdup($4); }
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }		   
+decler: INT decler_int   
+      |FLOAT decler_float      
+      |CHAR decler_char
+      |STRING decler_str
+      |BOOL decler_bool
       ;
-decler_int: ',' ID AO exp decler_int decler_int2 { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 0);symtable[idx].value.int_val=$4; }
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
+
+      ///////////////////////decler INT ////////////////////////
+decler_int: ID  decler_int_list	        { if (get_var_index($1)==-1) 
+					  {
+					     if (is_full())  yyerror("symbol table is full") ;
+					     else 
+					     {int idx = add_var($1, 0);symtable[idx].value.int_val=0; }
+					  }
+					  else yyerror("variable already devlared before") ;
+				        }
+			      
+	   | ID AO exp decler_int_list  { if (get_var_index($1)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($1, 0);symtable[idx].value.int_val=$3; }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
+
+	  ;
+decler_int_list: ',' ID  decler_int_list{ if (get_var_index($2)==-1) 
+                                            {
+				              if (is_full())  yyerror("symbol table is full") ;
+				              else 
+				              {int idx = add_var($2, 0);symtable[idx].value.int_val=0; }
+				            }
+			                  else yyerror("variable already devlared before") ;
+			                }
+	   | ',' ID AO exp decler_int_list{ if (get_var_index($2)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($2, 0);symtable[idx].value.int_val=$4; }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
           | /*ep*/
 	  ;
-decler_int2: ',' ID  decler_int decler_int2 { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 0);symtable[idx].value.int_val=0; }
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
+
+///////////////////////// decler float//////////////////////////////
+
+decler_float: ID  decler_float_list    { if (get_var_index($1)==-1) 
+					  {
+					     if (is_full())  yyerror("symbol table is full") ;
+					     else 
+					     {int idx = add_var($1, 1);symtable[idx].value.float_val=0; }
+					  }
+					  else yyerror("variable already devlared before") ;
+				        }
+			      
+	   | ID AO exp decler_float_list{ if (get_var_index($1)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($1, 1);symtable[idx].value.float_val=$3; }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
+
+	  ;
+decler_float_list: ',' ID  decler_float_list{ if (get_var_index($2)==-1) 
+                                              {
+				                if (is_full())  yyerror("symbol table is full") ;
+				                else 
+				                {int idx = add_var($2, 1);symtable[idx].value.float_val=0; }
+				              }
+			                      else yyerror("variable already devlared before") ;
+			                    }
+	   | ',' ID AO exp decler_float_list{ if (get_var_index($2)==-1) 
+                                              {
+				               if (is_full())  yyerror("symbol table is full") ;
+				               else 
+				               {int idx = add_var($2, 1);symtable[idx].value.float_val=$4; }
+				              }
+			                     else yyerror("variable already devlared before") ;
+			                    }
           | /*ep*/
 	  ;
-decler_float: ',' ID AO exp decler_float { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 1);symtable[idx].value.float_val=$4;}
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
+
+      ///////////////////////decler char ////////////////////////
+decler_char: ID  decler_char_list      { if (get_var_index($1)==-1) 
+					  {
+					     if (is_full())  yyerror("symbol table is full") ;
+					     else 
+					     {int idx = add_var($1, 2);symtable[idx].value.char_val='0'; }
+					  }
+					  else yyerror("variable already devlared before") ;
+				        }
+			      
+	   | ID AO CH decler_char_list  { if (get_var_index($1)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($1, 2);symtable[idx].value.char_val=$3; }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
+
+	  ;
+decler_char_list: ',' ID  decler_char_list{ if (get_var_index($2)==-1) 
+                                            {
+				              if (is_full())  yyerror("symbol table is full") ;
+				              else 
+				              {int idx = add_var($2, 2);symtable[idx].value.char_val='0'; }
+				            }
+			                  else yyerror("variable already devlared before") ;
+			                }
+	   | ',' ID AO CH decler_char_list{ if (get_var_index($2)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($2, 2);symtable[idx].value.char_val=$4; }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
           | /*ep*/
 	  ;
-decler_char: ',' ID AO CH decler_char { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 2);symtable[idx].value.char_val=$4;}
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
+
+///////////////////////decler string ////////////////////////
+decler_str: ID  decler_str_list      { if (get_var_index($1)==-1) 
+					  {
+					     if (is_full())  yyerror("symbol table is full") ;
+					     else 
+					     {int idx = add_var($1, 4);symtable[idx].value.str_val=strdup(""); }
+					  }
+					  else yyerror("variable already devlared before") ;
+				        }
+			      
+	   | ID AO STR decler_str_list  { if (get_var_index($1)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($1, 4);symtable[idx].value.str_val=strdup($3); }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
+
+	  ;
+decler_str_list: ',' ID  decler_str_list{ if (get_var_index($2)==-1) 
+                                            {
+				              if (is_full())  yyerror("symbol table is full") ;
+				              else 
+				              {int idx = add_var($2, 4);symtable[idx].value.str_val=strdup(""); }
+				            }
+			                  else yyerror("variable already devlared before") ;
+			                }
+	   | ',' ID AO STR decler_str_list{ if (get_var_index($2)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($2, 4);symtable[idx].value.str_val=strdup($4); }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
           | /*ep*/
 	  ;
-decler_str: ',' ID AO STR decler_str { if (get_var_index($2)==-1) 
-                                  {
-				     if (is_full())  yyerror("symbol table is full") ;
-				     else 
-				     {int idx = add_var($2, 4);symtable[idx].value.str_val=strdup($4);}
-				  }
-			        else yyerror("variable already devlared before") ;
-			      }
-          | /*ep*/
+
+ ///////////////////////decler bool ////////////////////////
+decler_bool: ID  decler_bool_list	{ if (get_var_index($1)==-1) 
+					  {
+					     if (is_full())  yyerror("symbol table is full") ;
+					     else 
+					     {int idx = add_var($1, 3);symtable[idx].value.bool_val=false; }
+					  }
+					  else yyerror("variable already devlared before") ;
+				        }
+			      
+	   | ID AO BOOLVAL decler_bool_list  { if (get_var_index($1)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($1, 3);symtable[idx].value.bool_val=$3; }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
+
 	  ;
+decler_bool_list: ',' ID  decler_bool_list{ if (get_var_index($2)==-1) 
+                                            {
+				              if (is_full())  yyerror("symbol table is full") ;
+				              else 
+				              {int idx = add_var($2, 3);symtable[idx].value.bool_val=false; }
+				            }
+			                  else yyerror("variable already devlared before") ;
+			                }
+	   | ',' ID AO BOOLVAL decler_bool_list{ if (get_var_index($2)==-1) 
+                                           {
+				             if (is_full())  yyerror("symbol table is full") ;
+				             else 
+				             {int idx = add_var($2, 3);symtable[idx].value.bool_val=$4; }
+				           }
+			                   else yyerror("variable already devlared before") ;
+			                }
+          | /*ep*/
+	  ; 
+
 %%
 
 int yyerror(char* s)
