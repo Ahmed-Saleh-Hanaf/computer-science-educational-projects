@@ -13,10 +13,10 @@ typedef struct
     char name[32];
     int type; // 0=int,1=float,2=char,3=bool,4=string 
     union {
-            int int_val;
+            int   int_val;
 	    float float_val;
-	    char char_val;
-	    bool bool_val;
+	    char  char_val;
+	    bool  bool_val;
 	    char* str_val;
     } value;
 }Variable;
@@ -40,47 +40,21 @@ int add_var(char *name, int type)
 {
     strcpy(symtable[num_var].name, name);
     symtable[num_var].type = type;
-    //printf("%s\n",symtable[num_var].name);
     num_var++;
     return num_var-1;
 }
-
-// ID List
-typedef struct { char name[32]; } IDLIST;
-IDLIST idlist[10];
-int num_id = 0;
-
-void add_to_id_list(char *name) {
-    strcpy(idlist[num_id].name, name);
-    num_id++;
-}
-
-// Value List
-typedef struct {
-    int type; // 0=int,1=float,2=char,3=bool,4=string 
-    union {
-        int int_val;
-        float float_val;
-        char char_val;
-        bool bool_val;
-        char* str_val;
-    } value;
-} Value;
-
-Value vallist[10];
-int num_val = 0;
 %}
 
 %union
 { 
-    int int_val;
+    int   int_val;
     float float_val;
-    char char_val;
-    bool bool_val;
+    char  char_val;
+    bool  bool_val;
     char* str_val;
 }
 
-%token CLASS FUN RETURN FOR WHILE BREAK CONTINUE SWITCH CASE DEFAULT IF ELIF ELSE
+%token CLASS FUN RETURN FOR WHILE BREAK CONTINUE SWITCH CASE DEFAULT IF ELIF ELSE PRINT RANGE IN
 %token INT FLOAT CHAR STRING BOOL VOID
 %token AND OR NOT
 %token EE NE GE LE G L
@@ -88,40 +62,551 @@ int num_val = 0;
 %token INCR DECR 
 %token POW PLUS MINES MULT DIV MOD 
 
-%token <int_val> NUM_INT
+%token <int_val>   NUM_INT
 %token <float_val> NUM_FLOAT
-%token <str_val> ID
-%token <str_val> STR
-%token <char_val> CH
-%token <bool_val> BOOLVAL
+%token <str_val>   ID
+%token <str_val>   STR
+%token <char_val>  CH
+%token <bool_val>  BOOLVAL
 
 %type <float_val> exp term fact
+%type <bool_val> logic rel elif_list
 
-%left OR
-%left AND
-%left EE NE G L GE LE
-%left PLUS MINES
-%left MULT DIV MOD
+%left  OR
+%left  AND
+%right NOT
+%left  EE NE G L GE LE
+%left  PLUS MINES
+%left  MULT DIV MOD
 %right POW
-%left INCR DECR
-%right AO
+%right AO PA SA MA DA MODA
+%right INCR DECR
 %nonassoc UMINUS
 
 %start code
 
 %% 
-code: code stmt
-    | stmt
+code: code decler
+    | decler
     ;
 
-stmt: exp ';'               { printf("Result: %f\n", $1); }
-    | decler ';'
+decler: class
+      | fun
+      | stmt
+      ;
+ 
+stmt: exp ';'                          { printf("Result: %f\n", $1); }
+    | decler_var ';'		       
     | assign ';'
+    | if_stmt
+    | while_stmt
+    | for_stmt
+    | switch_stmt
+    | RETURN exp ';'
+    | BREAK ';'
+    | CONTINUE ';'
     | var ':'
+    | print ';'
     ;
+
+stmt_list: stmt_list stmt
+         | /*ep*/
+         ;
+
+block: '{' stmt_list '}'
+    ;
+///////////////////////Expression/////////////////////////////
+exp:  exp PLUS term                     { $$ = $1 + $3; }
+    | exp MINES term                    { $$ = $1 - $3; }
+    | term                              { $$ = $1; }
+    ;
+
+term: term MULT fact                    { $$ = $1 * $3; }
+    | term DIV fact                     { if($3==0) { printf("Error: divide by zero\n"); $$=0; } else $$=$1/$3; }
+    | term MOD fact                     { if($3==0) { printf("Error: modulo by zero\n"); $$=0; } else $$=fmod($1,$3); }
+    | fact                              { $$ = $1; }
+    ;
+
+fact: '(' exp ')'                       { $$ = $2; }
+    | NUM_INT                           { $$ = (float)$1; }
+    | NUM_FLOAT                         { $$ = $1; }
+    | ID                                {  
+					       int idx = get_var_index($1);
+					       if (idx == -1) yyerror("this var is not declered\n") ;
+					       else 
+					       {
+						 if(symtable[idx].type == 0)$$=symtable[idx].value.int_val;
+						 else if (symtable[idx].type == 1) $$=symtable[idx].value.float_val;
+						 else yyerror("you can not use this var in expression\n") ;
+					       }
+					 }
+    | ID INCR                            {
+						int idx = get_var_index($1);
+						if (idx == -1)yyerror("variable not declered\n");
+						else 
+						{  
+							if(symtable[idx].type==0) {symtable[idx].value.int_val+=1;$$=symtable[idx].value.int_val; }
+							else if (symtable[idx].type==1) $$=++symtable[idx].value.float_val;
+							else yyerror("you can not increament this var\n");  
+						}
+					 }
+    | ID DECR				 {
+						int idx = get_var_index($1);
+						if (idx == -1)yyerror("variable not declered\n");
+						else 
+						{  
+							if(symtable[idx].type==0) {symtable[idx].value.int_val-=1;$$=symtable[idx].value.int_val; }
+							else if (symtable[idx].type==1) $$=--symtable[idx].value.float_val;
+							else yyerror("you can not increament this var\n");  
+						}
+			                 }
+
+    | MINES fact %prec UMINUS            { $$ = -$2; }
+    | fact POW fact                      { $$ = pow($1,$3); } 
+    ;
+
+/////////////////////////////Decleration///////////////////////////////////////////////
+decler_var: INT decler_int   
+          | FLOAT decler_float      
+          | CHAR decler_char
+          | STRING decler_str
+          | BOOL decler_bool
+          ;
+
+
+decler_int: ID  decler_int_list	          { 
+						if (get_var_index($1)==-1) 
+						{
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 0);symtable[idx].value.int_val=0; }
+						}
+					        else yyerror("variable already devlared before") ;
+				          }
+			      
+	   | ID AO exp decler_int_list    { 
+						if (get_var_index($1)==-1) 
+						{
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 0);symtable[idx].value.int_val=$3; }
+						}
+						else yyerror("variable already devlared before") ;
+			                  }
+
+	   ;
+
+decler_int_list: ',' ID  decler_int_list  { 
+						if (get_var_index($2)==-1) 
+                                                {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 0);symtable[idx].value.int_val=0; }
+						}
+						else yyerror("variable already devlared before") ;
+			                  }
+	   | ',' ID AO exp decler_int_list{ 
+						if (get_var_index($2)==-1) 
+						{
+							 if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 0);symtable[idx].value.int_val=$4; }
+						}
+						else yyerror("variable already devlared before") ;
+			                  }
+          | /*ep*/
+	  ;
+
+
+decler_float: ID  decler_float_list       {
+						if (get_var_index($1)==-1) 
+						{
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 1);symtable[idx].value.float_val=0; }
+						}
+						else yyerror("variable already devlared before") ;
+				          }
+			      
+	   | ID AO exp decler_float_list  {
+						if (get_var_index($1)==-1) 
+						{
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 1);symtable[idx].value.float_val=$3; }
+						}
+						else yyerror("variable already devlared before") ;
+					  }
+
+	  ;
+
+decler_float_list: ',' ID  decler_float_list {	
+						 if (get_var_index($2)==-1) 
+						 {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 1);symtable[idx].value.float_val=0; }
+						 }
+						 else yyerror("variable already devlared before") ;
+			                     }
+	   | ',' ID AO exp decler_float_list { 
+						 if (get_var_index($2)==-1) 
+                                                 {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 1);symtable[idx].value.float_val=$4; }
+				                 }
+			                         else yyerror("variable already devlared before") ;
+			                      }
+          | /*ep*/
+	  ;
+
+
+decler_char: ID  decler_char_list	     { 
+						if (get_var_index($1)==-1) 
+						{
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 2);symtable[idx].value.char_val='0'; }
+						}
+						else yyerror("variable already devlared before") ;
+					     }
+			      
+	   | ID AO CH decler_char_list       { 
+						if (get_var_index($1)==-1) 
+						{
+							 if (is_full())  yyerror("symbol table is full") ;
+							 else 
+							 {int idx = add_var($1, 2);symtable[idx].value.char_val=$3; }
+						}
+						else yyerror("variable already devlared before") ;
+			                     }
+
+	  ;
+
+decler_char_list: ',' ID  decler_char_list   {	
+						if (get_var_index($2)==-1) 
+                                                {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 2);symtable[idx].value.char_val='0'; }
+						}
+						else yyerror("variable already devlared before") ;
+					     }
+	   | ',' ID AO CH decler_char_list   {
+						if (get_var_index($2)==-1) 
+                                                {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 2);symtable[idx].value.char_val=$4; }
+				                }
+			                        else yyerror("variable already devlared before") ;
+					      }
+          | /*ep*/
+	  ;
+
+
+decler_str: ID  decler_str_list		      { 
+						  if (get_var_index($1)==-1) 
+						  {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 4);symtable[idx].value.str_val=strdup(""); }
+						  }
+						  else yyerror("variable already devlared before") ;
+				               }
+			      
+	   | ID AO STR decler_str_list	       { 
+						   if (get_var_index($1)==-1) 
+                                                   {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 4);symtable[idx].value.str_val=strdup($3); }
+						   }
+						   else yyerror("variable already devlared before") ;
+					       }
+
+	  ;
+
+decler_str_list: ',' ID  decler_str_list       { 
+						   if (get_var_index($2)==-1) 
+						   {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 4);symtable[idx].value.str_val=strdup(""); }
+						   }
+						   else yyerror("variable already devlared before") ;
+			                       }
+	   | ',' ID AO STR decler_str_list     { 
+						   if (get_var_index($2)==-1) 
+						   {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($2, 4);symtable[idx].value.str_val=strdup($4); }
+						   }
+						  else yyerror("variable already devlared before") ;
+					       }
+          | /*ep*/
+	  ;
+
+
+decler_bool: ID  decler_bool_list		{
+						    if (get_var_index($1)==-1) 
+						    {
+							if (is_full())  yyerror("symbol table is full") ;
+							else 
+							{int idx = add_var($1, 3);symtable[idx].value.bool_val=false; }
+						     }
+						     else yyerror("variable already devlared before") ;
+				                 }
+			      
+	   | ID AO BOOLVAL decler_bool_list      { 
+							if (get_var_index($1)==-1) 
+							{
+								if (is_full())  yyerror("symbol table is full") ;
+								else 
+								{int idx = add_var($1, 3);symtable[idx].value.bool_val=$3; }
+							}
+							else yyerror("variable already devlared before") ;
+						  }
+
+	  ;
+
+decler_bool_list: ',' ID  decler_bool_list        { 
+							if (get_var_index($2)==-1) 
+							{
+								if (is_full())  yyerror("symbol table is full") ;
+								else 
+								{int idx = add_var($2, 3);symtable[idx].value.bool_val=false; }
+							}
+							else yyerror("variable already devlared before") ;
+						  }
+	   | ',' ID AO BOOLVAL decler_bool_list   { 
+							if (get_var_index($2)==-1) 
+							{
+								if (is_full())  yyerror("symbol table is full") ;
+								else 
+								{int idx = add_var($2, 3);symtable[idx].value.bool_val=$4; }
+							}
+							else yyerror("variable already devlared before") ;
+						  }
+          | /*ep*/
+	  ; 
+
+///////////////////////////assignment operators/////////////////
+assign: ID AO exp				 {
+							int idx = get_var_index($1);
+							if (idx == -1) yyerror("variable not declared");
+							else 
+							{
+								if (symtable[idx].type == 0) symtable[idx].value.int_val = (int)$3;
+								else if (symtable[idx].type == 1)  symtable[idx].value.float_val = $3;
+								else yyerror("type mismatch in assignment");
+						        }
+						 }
+
+
+      | ID AO CH				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 2) symtable[idx].value.char_val = $3;
+						    else yyerror("type mismatch (char)");
+						 }
+
+
+      | ID AO STR				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 4) symtable[idx].value.str_val = strdup($3);
+						    else yyerror("type mismatch (string)");
+						 }
+
+
+      | ID AO BOOLVAL				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 3) symtable[idx].value.bool_val = $3;
+						    else yyerror("type mismatch (bool)");
+						 }
+
+      | ID AO '(' logic ')'			 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 3) symtable[idx].value.bool_val = $4;
+						    else yyerror("type mismatch (bool)");
+						 }
+
+
+     | ID PA exp				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 0) symtable[idx].value.int_val += (int)$3;
+						    else if (symtable[idx].type == 1) symtable[idx].value.float_val += $3;
+						    else yyerror("+= not allowed for this type");
+						 }
+
+
+     | ID PA STR				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 4) 
+						    {
+							char *tmp = malloc(strlen(symtable[idx].value.str_val) + strlen($3) + 1);
+							strcpy(tmp, symtable[idx].value.str_val);
+							strcat(tmp, $3);
+							symtable[idx].value.str_val = tmp;
+						    } 
+						    else yyerror("+= not allowed for this type");
+						 }
+
+
+     | ID SA exp				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 0) symtable[idx].value.int_val -= (int)$3;
+						    else if (symtable[idx].type == 1) symtable[idx].value.float_val -= $3;
+						    else yyerror("-= not allowed for this type");
+						 }
+
+     | ID MA exp				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 0) symtable[idx].value.int_val *= (int)$3;
+						    else if (symtable[idx].type == 1) symtable[idx].value.float_val *= $3;
+						    else yyerror("*= not allowed for this type");
+						 }
+
+    | ID DA exp					 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else 
+						    {
+							if ($3 == 0) yyerror("division by zero");
+							else if (symtable[idx].type == 0) symtable[idx].value.int_val /= (int)$3;
+							else if (symtable[idx].type == 1) symtable[idx].value.float_val /= $3;
+							else yyerror("/= not allowed for this type");
+						    }
+						 }
+
+
+    | ID MODA exp				 {
+						    int idx = get_var_index($1);
+						    if (idx == -1) yyerror("variable not declared");
+						    else if (symtable[idx].type == 0) 
+						    {
+							if ((int)$3 == 0) yyerror("modulo by zero");
+							else symtable[idx].value.int_val %= (int)$3;
+						    } 
+						    else yyerror("%= allowed only for int");
+						 }
+;
+
+////////////////////////////logical operators////////////////
+logic: rel AND logic                   {$$=$1&&$3;}
+     | rel OR logic                    {$$=$1||$3;}
+     | NOT logic                       {$$=!$2;}
+     | rel                             {$$=$1;}
+     | BOOLVAL                         {$$= $1;}
+     ;
+ 
+////////////////////////////comparison (relational) operators////////////////
+rel: exp EE exp                        {$$=($1==$3);}
+   | exp NE exp                        {$$=($1!=$3);}
+   | exp GE exp                        {$$=($1>=$3);}
+   | exp LE exp                        {$$=($1<=$3);}
+   | exp G exp                         {$$=($1>$3);}
+   | exp L exp                         {$$=($1<$3);}
+   ;
+
+/////////////////////////if/elif/else///////////////////////
+if_stmt : IF '(' logic ')' block elif_list else_opt { if($3) printf("Executed if\n"); else if($6) printf("Executed Else if\n"); else printf("Executed Else\n");}
+        ;
+
+elif_list: elif_list ELIF '(' logic ')'	block 	      {$$=$4;}      
+         | /*ep*/                                     {$$=false;}
+         ;
+
+else_opt: ELSE	block 
+	| /*ep*/
+        ;
+
+////////////////////////// switch /////////////////////////
+switch_stmt: SWITCH '(' exp ')' '{' case_list default_case '}'  {printf("switch case num %f", $3);}
+    ;
+
+case_list: case_list CASE NUM_INT  block
+    | /*ep*/
+    ;
+
+default_case: DEFAULT ':' block
+    | /*ep*/
+    ;
+
+
+/////////////////////////while loop////////////////////////
+while_stmt
+    : WHILE '(' logic ')' block                       {  
+							if($3)
+						        {
+								int i =1;
+								while(i<5){printf("while num: %d\n", i); i++;}
+							}
+							else printf("No while\n");
+						      }
+    ;
+
+/////////////////////////for loop/////////////////////////
+for_stmt: FOR  ID IN RANGE '(' NUM_INT ',' NUM_INT ',' NUM_INT ')'  {
+									int i = 1;
+									int st = $6;
+									int en = $8;
+									int step = $10;
+									if (step > 0)
+									{
+										for (; st<=en;st+=step, i++)printf("loop %d\n",i);
+									}
+									else if (step < 0)
+									{
+									    for(;st>=en; st+=step,i++)printf("loop %d\n",i);
+									}
+									else yyerror("step must not be zero\n");
+								    }  
+    ;
+
+////////////////////////////print function /////////////////
+print: PRINT '(' exp ')'                    {printf("%f\n", $3);}
+     | PRINT '(' STR ')'                    {printf("%s\n",$3);}
+     | PRINT '(' ID  ')'                    { 
+						 int idx = get_var_index($3);
+						 if (idx == -1) yyerror("this var is not declered\n") ;
+						 else 
+						 {
+							 if (symtable[idx].type == 0)
+							 {
+							   printf("%d\n", symtable[idx].value.int_val);
+							 }
+							 else if (symtable[idx].type == 1)
+							 {
+							   printf("%f\n", symtable[idx].value.float_val);
+							 }
+							 else if (symtable[idx].type == 2)
+							 {
+							   printf("%c\n", symtable[idx].value.char_val);
+							 }
+							 else if (symtable[idx].type == 4)
+							 {
+							   printf("%s\n", symtable[idx].value.str_val);
+							 }
+							  else if (symtable[idx].type == 3)
+							 {
+							   printf("%s\n", symtable[idx].value.bool_val?"True":"False");
+							 }
+					         }
+					    }
+     ;
 ////////////////////////////////////////
 var: ID {
-         int idx = get_var_index($1);
+			       int idx = get_var_index($1);
                                if (idx == -1) yyerror("this var is not declered\n") ;
 			       else 
 			       {
@@ -144,7 +629,7 @@ var: ID {
 				 else if (symtable[idx].type == 4)
 				 {
 				   printf("type var: string\n");
-				   printf("value var: %s\n", symtable[idx].value.str_val);
+				   printf("value var: \"%s\"\n", symtable[idx].value.str_val);
 				 }
 				  else if (symtable[idx].type == 3)
 				 {
@@ -157,364 +642,32 @@ var: ID {
 			      }
          } 
     ;
-///////////////////////Expression/////////////////////////////
-exp:  exp PLUS term         { $$ = $1 + $3; }
-    | exp MINES term        { $$ = $1 - $3; }
-    | term                  { $$ = $1; }
+
+/////////////////////////////function////////////
+fun: FUN ID '(' param_list ')' block                  {printf("function %s is declered\n", $2);}
     ;
 
-term: term MULT fact        { $$ = $1 * $3; }
-    | term DIV fact         { if($3==0) { printf("Error: divide by zero\n"); $$=0; } else $$=$1/$3; }
-    | term MOD fact         { if($3==0) { printf("Error: modulo by zero\n"); $$=0; } else $$=fmod($1,$3); }
-    | fact                  { $$ = $1; }
+param_list: param_list ',' param
+          | param
+          | /*ep*/
+          ;
+
+param: type ID
+     ;
+
+type: INT
+    | FLOAT
+    | CHAR
+    | STRING
+    | BOOL
     ;
 
-fact: '(' exp ')'           { $$ = $2; }
-    | NUM_INT               { $$ = (float)$1; }
-    | NUM_FLOAT             { $$ = $1; }
-    | ID                    {  
-                               int idx = get_var_index($1);
-                               if (idx == -1) yyerror("this var is not declered\n") ;
-			       else 
-			       {
-			         if(symtable[idx].type == 0)$$=symtable[idx].value.int_val;
-				 else if (symtable[idx].type == 1) $$=symtable[idx].value.float_val;
-				 else yyerror("you can not use this var in expression\n") ;
-			       }
-                            }
-    | ID INCR               {int idx = get_var_index($1);
-		             if (idx == -1)yyerror("variable not declered\n");
-			     else 
-				 {  
-					 if(symtable[idx].type==0) {symtable[idx].value.int_val+=1;$$=symtable[idx].value.int_val; }
-					 else if (symtable[idx].type==1) $$=++symtable[idx].value.float_val;
-					 else yyerror("you can not increament this var\n");  
-				  }
-			    }
-    | ID DECR               {int idx = get_var_index($1);
-		             if (idx == -1)yyerror("variable not declered\n");
-			     else 
-				 {  
-					 if(symtable[idx].type==0) {symtable[idx].value.int_val-=1;$$=symtable[idx].value.int_val; }
-					 else if (symtable[idx].type==1) $$=--symtable[idx].value.float_val;
-					 else yyerror("you can not increament this var\n");  
-				  }
-			    }
-
-    | MINES fact %prec UMINUS { $$ = -$2; }
-    | fact POW fact         { $$ = pow($1,$3); } 
+/////////////////////////////class///////////////
+class
+    : CLASS ID '{' code '}'
     ;
 
-/////////////////////////////Decleration///////////////////////////////////////////////
-decler: INT decler_int   
-      |FLOAT decler_float      
-      |CHAR decler_char
-      |STRING decler_str
-      |BOOL decler_bool
-      ;
 
-      ///////////////////////decler INT ////////////////////////
-decler_int: ID  decler_int_list	        { if (get_var_index($1)==-1) 
-					  {
-					     if (is_full())  yyerror("symbol table is full") ;
-					     else 
-					     {int idx = add_var($1, 0);symtable[idx].value.int_val=0; }
-					  }
-					  else yyerror("variable already devlared before") ;
-				        }
-			      
-	   | ID AO exp decler_int_list  { if (get_var_index($1)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($1, 0);symtable[idx].value.int_val=$3; }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-
-	  ;
-decler_int_list: ',' ID  decler_int_list{ if (get_var_index($2)==-1) 
-                                            {
-				              if (is_full())  yyerror("symbol table is full") ;
-				              else 
-				              {int idx = add_var($2, 0);symtable[idx].value.int_val=0; }
-				            }
-			                  else yyerror("variable already devlared before") ;
-			                }
-	   | ',' ID AO exp decler_int_list{ if (get_var_index($2)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($2, 0);symtable[idx].value.int_val=$4; }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-          | /*ep*/
-	  ;
-
-///////////////////////// decler float//////////////////////////////
-
-decler_float: ID  decler_float_list    { if (get_var_index($1)==-1) 
-					  {
-					     if (is_full())  yyerror("symbol table is full") ;
-					     else 
-					     {int idx = add_var($1, 1);symtable[idx].value.float_val=0; }
-					  }
-					  else yyerror("variable already devlared before") ;
-				        }
-			      
-	   | ID AO exp decler_float_list{ if (get_var_index($1)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($1, 1);symtable[idx].value.float_val=$3; }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-
-	  ;
-decler_float_list: ',' ID  decler_float_list{ if (get_var_index($2)==-1) 
-                                              {
-				                if (is_full())  yyerror("symbol table is full") ;
-				                else 
-				                {int idx = add_var($2, 1);symtable[idx].value.float_val=0; }
-				              }
-			                      else yyerror("variable already devlared before") ;
-			                    }
-	   | ',' ID AO exp decler_float_list{ if (get_var_index($2)==-1) 
-                                              {
-				               if (is_full())  yyerror("symbol table is full") ;
-				               else 
-				               {int idx = add_var($2, 1);symtable[idx].value.float_val=$4; }
-				              }
-			                     else yyerror("variable already devlared before") ;
-			                    }
-          | /*ep*/
-	  ;
-
-      ///////////////////////decler char ////////////////////////
-decler_char: ID  decler_char_list      { if (get_var_index($1)==-1) 
-					  {
-					     if (is_full())  yyerror("symbol table is full") ;
-					     else 
-					     {int idx = add_var($1, 2);symtable[idx].value.char_val='0'; }
-					  }
-					  else yyerror("variable already devlared before") ;
-				        }
-			      
-	   | ID AO CH decler_char_list  { if (get_var_index($1)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($1, 2);symtable[idx].value.char_val=$3; }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-
-	  ;
-decler_char_list: ',' ID  decler_char_list{ if (get_var_index($2)==-1) 
-                                            {
-				              if (is_full())  yyerror("symbol table is full") ;
-				              else 
-				              {int idx = add_var($2, 2);symtable[idx].value.char_val='0'; }
-				            }
-			                  else yyerror("variable already devlared before") ;
-			                }
-	   | ',' ID AO CH decler_char_list{ if (get_var_index($2)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($2, 2);symtable[idx].value.char_val=$4; }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-          | /*ep*/
-	  ;
-
-///////////////////////decler string ////////////////////////
-decler_str: ID  decler_str_list      { if (get_var_index($1)==-1) 
-					  {
-					     if (is_full())  yyerror("symbol table is full") ;
-					     else 
-					     {int idx = add_var($1, 4);symtable[idx].value.str_val=strdup(""); }
-					  }
-					  else yyerror("variable already devlared before") ;
-				        }
-			      
-	   | ID AO STR decler_str_list  { if (get_var_index($1)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($1, 4);symtable[idx].value.str_val=strdup($3); }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-
-	  ;
-decler_str_list: ',' ID  decler_str_list{ if (get_var_index($2)==-1) 
-                                            {
-				              if (is_full())  yyerror("symbol table is full") ;
-				              else 
-				              {int idx = add_var($2, 4);symtable[idx].value.str_val=strdup(""); }
-				            }
-			                  else yyerror("variable already devlared before") ;
-			                }
-	   | ',' ID AO STR decler_str_list{ if (get_var_index($2)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($2, 4);symtable[idx].value.str_val=strdup($4); }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-          | /*ep*/
-	  ;
-
- ///////////////////////decler bool ////////////////////////
-decler_bool: ID  decler_bool_list	{ if (get_var_index($1)==-1) 
-					  {
-					     if (is_full())  yyerror("symbol table is full") ;
-					     else 
-					     {int idx = add_var($1, 3);symtable[idx].value.bool_val=false; }
-					  }
-					  else yyerror("variable already devlared before") ;
-				        }
-			      
-	   | ID AO BOOLVAL decler_bool_list  { if (get_var_index($1)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($1, 3);symtable[idx].value.bool_val=$3; }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-
-	  ;
-decler_bool_list: ',' ID  decler_bool_list{ if (get_var_index($2)==-1) 
-                                            {
-				              if (is_full())  yyerror("symbol table is full") ;
-				              else 
-				              {int idx = add_var($2, 3);symtable[idx].value.bool_val=false; }
-				            }
-			                  else yyerror("variable already devlared before") ;
-			                }
-	   | ',' ID AO BOOLVAL decler_bool_list{ if (get_var_index($2)==-1) 
-                                           {
-				             if (is_full())  yyerror("symbol table is full") ;
-				             else 
-				             {int idx = add_var($2, 3);symtable[idx].value.bool_val=$4; }
-				           }
-			                   else yyerror("variable already devlared before") ;
-			                }
-          | /*ep*/
-	  ; 
-///////////////////////////assignment/////////////////
-assign: id_list AO val_list            {
-                                            if (num_id != num_val)  yyerror("Number of variables and values do not match");
-                                            else 
-					    {
-                                                for (int i=0, j=num_id-1; i<num_id; i++, j--) 
-						{
-                                                   int idx = get_var_index(idlist[i].name);
-                                                   if (idx == -1) {yyerror("Variable not declared"); continue; }
-                                                   if (symtable[idx].type != vallist[j].type) { yyerror("Type mismatch"); continue;}
-						
-                                                   switch(symtable[idx].type) 
-						   {
-                                                      case 0: symtable[idx].value.int_val = vallist[j].value.int_val; break;
-                                                      case 1: symtable[idx].value.float_val = vallist[j].value.float_val; break;
-                                                      case 2: symtable[idx].value.char_val = vallist[j].value.char_val; break;
-                                                      case 3: symtable[idx].value.bool_val = vallist[j].value.bool_val; break;
-                                                      case 4: free(symtable[idx].value.str_val);
-                                                      symtable[idx].value.str_val = strdup(vallist[i].value.str_val); break;
-                                                   }
-                                                    printf("%s assigned successfully.\n", idlist[i].name);
-                                                }
-                                             }
-                                             num_id = 0;
-                                             num_val = 0;
-                                       }
-	 | ID PA exp                   {  
-                                          int idx = get_var_index($1);
-                                          if (idx == -1) yyerror("this var is not declered\n") ;
-			                  else 
-			                  {
-			                      if(symtable[idx].type == 0)symtable[idx].value.int_val += (int)$3;
-				              else if (symtable[idx].type == 1) symtable[idx].value.float_val+= $3;
-				              else yyerror("you can not use this var in expression\n") ;
-			                  }
-                                        }
-	 | ID SA exp                   {  
-                                          int idx = get_var_index($1);
-                                          if (idx == -1) yyerror("this var is not declered\n") ;
-			                  else 
-			                  {
-			                      if(symtable[idx].type == 0)symtable[idx].value.int_val -= (int)$3;
-				              else if (symtable[idx].type == 1) symtable[idx].value.float_val-= $3;
-				              else yyerror("you can not use this var in expression\n") ;
-			                  }
-                                        }
-	 | ID MA exp                   {  
-                                          int idx = get_var_index($1);
-                                          if (idx == -1) yyerror("this var is not declered\n") ;
-			                  else 
-			                  {
-			                      if(symtable[idx].type == 0)symtable[idx].value.int_val *= (int)$3;
-				              else if (symtable[idx].type == 1) symtable[idx].value.float_val-= $3;
-				              else yyerror("you can not use this var in expression\n") ;
-			                  }
-                                        }
-	 | ID DA exp                   {  
-                                          int idx = get_var_index($1);
-                                          if (idx == -1) yyerror("this var is not declered\n") ;
-			                  else 
-			                  {
-			                      if(symtable[idx].type == 0)symtable[idx].value.int_val /= (int)$3;
-				              else if (symtable[idx].type == 1) symtable[idx].value.float_val/= $3;
-				              else yyerror("you can not use this var in expression\n") ;
-			                  }
-                                        }
-	| ID MODA exp                   {  
-                                          int idx = get_var_index($1);
-                                          if (idx == -1) yyerror("this var is not declered\n") ;
-			                  else 
-			                  {
-			                      if(symtable[idx].type == 0)symtable[idx].value.int_val %= (int)$3;
-				              else if (symtable[idx].type == 1) symtable[idx].value.float_val%= $3;
-				              else yyerror("you can not use this var in expression\n") ;
-			                  }
-                                        }
-         ;
-
-id_list: ID                            { add_to_id_list($1); }
-       | ID ',' id_list                { add_to_id_list($1); }
-       ;
-
-val_list: val_item
-        | val_item ',' val_list 
-        ;
-
-val_item: NUM_FLOAT                    { vallist[num_val].type=1; vallist[num_val].value.float_val=$1; num_val++; }
-        | NUM_INT                      { vallist[num_val].type=0; vallist[num_val].value.int_val=$1; num_val++; }
-        | CH                           { vallist[num_val].type=2; vallist[num_val].value.char_val=$1; num_val++; }
-        | BOOLVAL                      { vallist[num_val].type=3; vallist[num_val].value.bool_val=$1; num_val++; }
-        | STR                          { vallist[num_val].type=4; vallist[num_val].value.str_val=strdup($1); num_val++; }
-	| ID                           {  
-                                          int idx = get_var_index($1);
-	                                  if (idx == -1) yyerror("this var is not declered\n") ;
-					  else 
-					  {
-						 switch(symtable[idx].type) 
-						   {
-                                                      case 0: vallist[num_val].type=0; vallist[num_val].value.int_val=symtable[idx].value.int_val; num_val++; break;
-                                                      case 1: vallist[num_val].type=1; vallist[num_val].value.float_val=symtable[idx].value.float_val; num_val++; break;
-                                                      case 2: vallist[num_val].type=2; vallist[num_val].value.char_val=symtable[idx].value.char_val; num_val++; break;
-                                                      case 3: vallist[num_val].type=3; vallist[num_val].value.bool_val=symtable[idx].value.bool_val; num_val++; break;
-                                                      case 4: vallist[num_val].type=4; vallist[num_val].value.str_val=symtable[idx].value.str_val; num_val++; break;
-                                                   }
-					   }
-                                       }                         
-        ;
 %%
 
 int yyerror(char* s)

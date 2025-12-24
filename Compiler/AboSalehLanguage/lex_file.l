@@ -30,6 +30,9 @@ id [a-zA-Z_][a-zA-Z0-9_]*
 "if"                            {return IF ;}
 "elif"                          {return ELIF ;}
 "else"                          {return ELSE ;}
+"print"                         {return PRINT;}
+"in"                            {return IN;}
+"range"                         {return RANGE;}
 
 "int"                           {return INT ;}
 "float"                         {return FLOAT;}
@@ -79,8 +82,11 @@ id [a-zA-Z_][a-zA-Z0-9_]*
 "["                             {return '[';}
 "]"                             {return ']';}
 
-\"([^"])*\"                          {yylval.str_val = strdup(yytext);
-				 return STR;}
+\"([^"])*\"                     {
+				  yytext[yyleng-1] = '\0';     
+				  yylval.str_val = strdup(yytext + 1); 
+				  return STR;
+				}
 
 \'.\'                           {yylval.char_val=yytext[1]; return CH;}
 

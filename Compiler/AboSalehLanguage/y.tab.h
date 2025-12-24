@@ -59,42 +59,45 @@ extern int yydebug;
      IF = 268,
      ELIF = 269,
      ELSE = 270,
-     INT = 271,
-     FLOAT = 272,
-     CHAR = 273,
-     STRING = 274,
-     BOOL = 275,
-     VOID = 276,
-     AND = 277,
-     OR = 278,
-     NOT = 279,
-     EE = 280,
-     NE = 281,
-     GE = 282,
-     LE = 283,
-     G = 284,
-     L = 285,
-     PA = 286,
-     SA = 287,
-     MA = 288,
-     DA = 289,
-     MODA = 290,
-     AO = 291,
-     INCR = 292,
-     DECR = 293,
-     POW = 294,
-     PLUS = 295,
-     MINES = 296,
-     MULT = 297,
-     DIV = 298,
-     MOD = 299,
-     NUM_INT = 300,
-     NUM_FLOAT = 301,
-     ID = 302,
-     STR = 303,
-     CH = 304,
-     BOOLVAL = 305,
-     UMINUS = 306
+     PRINT = 271,
+     RANGE = 272,
+     IN = 273,
+     INT = 274,
+     FLOAT = 275,
+     CHAR = 276,
+     STRING = 277,
+     BOOL = 278,
+     VOID = 279,
+     AND = 280,
+     OR = 281,
+     NOT = 282,
+     EE = 283,
+     NE = 284,
+     GE = 285,
+     LE = 286,
+     G = 287,
+     L = 288,
+     PA = 289,
+     SA = 290,
+     MA = 291,
+     DA = 292,
+     MODA = 293,
+     AO = 294,
+     INCR = 295,
+     DECR = 296,
+     POW = 297,
+     PLUS = 298,
+     MINES = 299,
+     MULT = 300,
+     DIV = 301,
+     MOD = 302,
+     NUM_INT = 303,
+     NUM_FLOAT = 304,
+     ID = 305,
+     STR = 306,
+     CH = 307,
+     BOOLVAL = 308,
+     UMINUS = 309
    };
 #endif
 /* Tokens.  */
@@ -111,42 +114,45 @@ extern int yydebug;
 #define IF 268
 #define ELIF 269
 #define ELSE 270
-#define INT 271
-#define FLOAT 272
-#define CHAR 273
-#define STRING 274
-#define BOOL 275
-#define VOID 276
-#define AND 277
-#define OR 278
-#define NOT 279
-#define EE 280
-#define NE 281
-#define GE 282
-#define LE 283
-#define G 284
-#define L 285
-#define PA 286
-#define SA 287
-#define MA 288
-#define DA 289
-#define MODA 290
-#define AO 291
-#define INCR 292
-#define DECR 293
-#define POW 294
-#define PLUS 295
-#define MINES 296
-#define MULT 297
-#define DIV 298
-#define MOD 299
-#define NUM_INT 300
-#define NUM_FLOAT 301
-#define ID 302
-#define STR 303
-#define CH 304
-#define BOOLVAL 305
-#define UMINUS 306
+#define PRINT 271
+#define RANGE 272
+#define IN 273
+#define INT 274
+#define FLOAT 275
+#define CHAR 276
+#define STRING 277
+#define BOOL 278
+#define VOID 279
+#define AND 280
+#define OR 281
+#define NOT 282
+#define EE 283
+#define NE 284
+#define GE 285
+#define LE 286
+#define G 287
+#define L 288
+#define PA 289
+#define SA 290
+#define MA 291
+#define DA 292
+#define MODA 293
+#define AO 294
+#define INCR 295
+#define DECR 296
+#define POW 297
+#define PLUS 298
+#define MINES 299
+#define MULT 300
+#define DIV 301
+#define MOD 302
+#define NUM_INT 303
+#define NUM_FLOAT 304
+#define ID 305
+#define STR 306
+#define CH 307
+#define BOOLVAL 308
+#define UMINUS 309
 
 
 
@@ -154,17 +160,17 @@ extern int yydebug;
 typedef union YYSTYPE
 {
 /* Line 2058 of yacc.c  */
-#line 75 "yacc_file.y"
+#line 49 "yacc_file.y"
  
-    int int_val;
+    int   int_val;
     float float_val;
-    char char_val;
-    bool bool_val;
+    char  char_val;
+    bool  bool_val;
     char* str_val;
 
 
 /* Line 2058 of yacc.c  */
-#line 168 "y.tab.h"
+#line 174 "y.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
